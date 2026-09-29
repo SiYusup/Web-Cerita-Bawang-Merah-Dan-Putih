@@ -255,3 +255,33 @@ a:focus-visible {
   .scroll-wheel { animation: none; }
   .reveal-line { will-change: auto; }
 }
+
+/* ============ CUSTOM CURSOR INTERAKTIF (desktop / fine pointer) ============ */
+@media (pointer: fine) {
+  body, button, a, [role="button"], input, select {
+    cursor: none !important;
+  }
+
+  #cursor-dot, #cursor-ring {
+    transform: translate(-50%, -50%);
+    will-change: transform;
+  }
+
+  #cursor-ring {
+    transition: width 0.2s ease-out, height 0.2s ease-out, background-color 0.2s ease-out, border-color 0.2s ease-out;
+  }
+
+  #cursor-ring.is-hover {
+    width: 3.2rem;
+    height: 3.2rem;
+    background-color: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(2px);
+  }
+
+  #cursor-ring.is-active {
+    width: 1.5rem;
+    height: 1.5rem;
+    background-color: rgba(255, 255, 255, 0.3);
+  }
+}

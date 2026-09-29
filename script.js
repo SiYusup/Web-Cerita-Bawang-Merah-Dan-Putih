@@ -835,6 +835,43 @@
     }
   }
 
+  /* ================= 9.6. CUSTOM CURSOR ================= */
+  function initCursor() {
+    const dot = document.getElementById('cursor-dot');
+    const ring = document.getElementById('cursor-ring');
+    if (!dot || !ring || !finePointer || reduceMotion) return;
+
+    try {
+      if (typeof gsap !== 'undefined') {
+        const xDot = gsap.quickTo(dot, 'x', { duration: 0.08, ease: 'power3.out' });
+        const yDot = gsap.quickTo(dot, 'y', { duration: 0.08, ease: 'power3.out' });
+        const xRing = gsap.quickTo(ring, 'x', { duration: 0.22, ease: 'power3.out' });
+        const yRing = gsap.quickTo(ring, 'y', { duration: 0.22, ease: 'power3.out' });
+
+        window.addEventListener('mousemove', function (e) {
+          xDot(e.clientX);
+          yDot(e.clientY);
+          xRing(e.clientX);
+          yRing(e.clientY);
+        });
+
+        // Efek hover interaktif pada tombol, link, dan navigasi bab
+        document.body.addEventListener('mouseover', function (e) {
+          const target = e.target.closest('button, a, [data-scrollto], .chapter-dot, input, select');
+          if (target) ring.classList.add('is-hover');
+        });
+
+        document.body.addEventListener('mouseout', function (e) {
+          const target = e.target.closest('button, a, [data-scrollto], .chapter-dot, input, select');
+          if (target) ring.classList.remove('is-hover');
+        });
+
+        window.addEventListener('mousedown', function () { ring.classList.add('is-active'); });
+        window.addEventListener('mouseup', function () { ring.classList.remove('is-active'); });
+      }
+    } catch (e) { /* abaikan jika gagal */ }
+  }
+
   /* ================= 10. BOOT =================
      Urutan penting: pin dibuat dulu (initGsap) supaya Lenis mengukur tinggi
      dokumen yang sudah benar, baru Lenis dinyalakan, baru gerbang armed. */
@@ -842,6 +879,7 @@
   paintToggle();
   initNav();
   initAudio();
+  initCursor();
   initGL();
   const gsapReady = initGsap();
   initSmooth();
