@@ -256,32 +256,138 @@ a:focus-visible {
   .reveal-line { will-change: auto; }
 }
 
-/* ============ CUSTOM CURSOR INTERAKTIF (desktop / fine pointer) ============ */
-@media (pointer: fine) {
-  body, button, a, [role="button"], input, select {
+/* ============ CURSOR CERITA: SELENDANG & SUMUR AJAIB ============
+   Saklar tampil satu-satunya = class `has-cursor` di <html> (dipasang JS
+   hanya bila init sukses). Tanpa itu — reduced-motion, GSAP gagal, atau
+   layar < lg — elemen di bawah tetap `display:none` dan kursor bawaan
+   browser tetap dipakai (tidak ada cursor ngestuck di pojok).
+   Partisi properti: #cursor-ring/#cursor-dot/#cursor-label adalah WRAPPER
+   posisi milik GSAP (x/y + xPercent); semua visual hidup di span dalam
+   (milik CSS) supaya transform GSAP dan CSS tidak saling menimpa. */
+#cursor-trail, #cursor-dot, #cursor-ring, #cursor-label {
+  display: none;
+}
+
+@keyframes cursor-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes cursor-spin-rev {
+  to { transform: rotate(-360deg); }
+}
+/* Denyut cahaya sumur saat diam */
+@keyframes cursor-halo {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 0.9; }
+}
+
+@media (pointer: fine) and (min-width: 1024px) {
+  html.has-cursor body,
+  html.has-cursor button,
+  html.has-cursor a,
+  html.has-cursor [role="button"],
+  html.has-cursor input,
+  html.has-cursor select {
     cursor: none !important;
   }
 
-  #cursor-dot, #cursor-ring {
-    transform: translate(-50%, -50%);
-    will-change: transform;
+  html.has-cursor #cursor-trail,
+  html.has-cursor #cursor-dot,
+  html.has-cursor #cursor-ring,
+  html.has-cursor #cursor-label {
+    display: block;
   }
 
-  #cursor-ring {
-    transition: width 0.2s ease-out, height 0.2s ease-out, background-color 0.2s ease-out, border-color 0.2s ease-out;
-  }
+  /* Kanvas pita selendang + percikan labu */
+  #cursor-trail { will-change: opacity; }
 
-  #cursor-ring.is-hover {
-    width: 3.2rem;
-    height: 3.2rem;
-    background-color: rgba(255, 255, 255, 0.12);
+  /* --- Cincin sihir (lingkaran sumur) --- */
+  #cursor-ring { width: 2.25rem; height: 2.25rem; }
+  .cursor-ring-base,
+  .cursor-ring-dial {
+    position: absolute;
+    border-radius: 9999px;
+    pointer-events: none;
+  }
+  .cursor-ring-base {
+    inset: 0;
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    transition: transform 0.2s ease-out, background-color 0.2s ease-out, border-color 0.2s ease-out;
+  }
+  .cursor-ring-dial {
+    inset: -4px;
+    border: 1px solid transparent;
+    border-top-color: rgba(255, 255, 255, 0.9);
+    animation: cursor-spin 6s linear infinite;
+  }
+  .cursor-ring-dial.rev {
+    inset: -9px;
+    border-top-color: transparent;
+    border-bottom-color: rgba(255, 255, 255, 0.4);
+    animation: cursor-spin-rev 11s linear infinite;
+  }
+  #cursor-ring.is-hover .cursor-ring-base {
+    transform: scale(1.55);
+    background-color: rgba(255, 255, 255, 0.1);
     border-color: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(2px);
+  }
+  #cursor-ring.is-hover .cursor-ring-dial { inset: -8px; }
+  #cursor-ring.is-active .cursor-ring-base {
+    transform: scale(0.72);
+    background-color: rgba(255, 255, 255, 0.28);
   }
 
-  #cursor-ring.is-active {
-    width: 1.5rem;
-    height: 1.5rem;
-    background-color: rgba(255, 255, 255, 0.3);
+  /* --- Cahaya sumur: inti + halo --- */
+  #cursor-dot { width: 0; height: 0; }
+  .cursor-core {
+    position: absolute;
+    left: -5px;
+    top: -5px;
+    width: 10px;
+    height: 10px;
+    border-radius: 9999px;
+    background: #fff;
+    mix-blend-mode: difference;
+    /* --flare ditulis JS dari glState (0..1) saat transisi antar-babak */
+    box-shadow: 0 0 calc(10px + var(--flare, 0) * 26px) rgba(255, 255, 255, 0.9);
   }
+  .cursor-halo {
+    position: absolute;
+    left: -17px;
+    top: -17px;
+    width: 34px;
+    height: 34px;
+    border-radius: 9999px;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.32) 0%, rgba(255, 255, 255, 0) 70%);
+    animation: cursor-halo 3s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  /* --- Pil label bilingual --- */
+  #cursor-label { width: 0; height: 0; overflow: visible; }
+  .cursor-label-pill {
+    display: block;
+    transform: translate(22px, 20px);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: #fff;
+    background: rgba(10, 10, 10, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 9999px;
+    padding: 6px 12px 6px 14px;
+    opacity: 0;
+    transition: opacity 0.18s ease-out;
+    pointer-events: none;
+  }
+  #cursor-label.show .cursor-label-pill { opacity: 1; }
+  #cursor-label.flip .cursor-label-pill { transform: translate(calc(-100% - 22px), 20px); }
+}
+
+/* Gerak cursor mati total saat reduced-motion (jalur JS memang bail out;
+   ini pengaman bila media query dan JS tidak sinkron). */
+@media (prefers-reduced-motion: reduce) {
+  .cursor-ring-dial, .cursor-halo { animation: none; }
+  .cursor-ring-base, .cursor-label-pill { transition: none; }
 }

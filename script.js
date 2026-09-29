@@ -128,6 +128,9 @@
   /* ================= 2. STATE ================= */
   let currentLang = 'id';
   let lenis = null;
+  /* Diisi initCursor bila cursor cerita jalan; dipanggil toggleLang supaya
+     label hover ikut berganti bahasa tanpa perlu gerak mouse. */
+  let cursorRefresh = null;
 
   const container = document.getElementById('story-container');
   const toggleBtn = document.getElementById('lang-toggle');
@@ -229,6 +232,7 @@
   function toggleLang() {
     currentLang = currentLang === 'id' ? 'jv' : 'id';
     applyLanguage();
+    if (typeof cursorRefresh === 'function') cursorRefresh();
   }
 
   if (toggleBtn) toggleBtn.addEventListener('click', toggleLang);
@@ -835,41 +839,207 @@
     }
   }
 
-  /* ================= 9.6. CUSTOM CURSOR ================= */
+  /* ================= 9.6. CURSOR CERITA: SELENDANG & SUMUR AJAIB ==========
+     Inti = cahaya sumur ajaib, ring = lingkaran sihir berputar (CSS),
+     ekor = pita selendang hidup (kanvas 2D), klik = percikan labu emas
+     (kilau putih, palet tetap B&W). Hover tombol = label pil bilingual.
+     Class `has-cursor` di <html> jadi satu-satunya saklar tampil: CSS baru
+     menampilkan elemen DAN mematikan kursor bawaan bila class ini ada,
+     yaitu hanya bila init di bawah ini sukses penuh. Kalau bail out
+     (reduced-motion, GSAP/canvas gagal, layar < lg) kursor bawaan tetap
+     dipakai — tidak ada lagi cursor ngestuck di pojok kiri atas.
+     Partisi properti: GSAP hanya menulis x/y (+xPercent) pada WRAPPER;
+     semua visual (scale, opacity, rotasi) milik span dalam via CSS.
+     Kanvas hanya MEMBACA glState (flare), tidak pernah menulisnya. */
   function initCursor() {
     const dot = document.getElementById('cursor-dot');
     const ring = document.getElementById('cursor-ring');
-    if (!dot || !ring || !finePointer || reduceMotion) return;
+    const label = document.getElementById('cursor-label');
+    const trail = document.getElementById('cursor-trail');
+    const pill = label ? label.querySelector('.cursor-label-pill') : null;
+    if (!dot || !ring || !label || !pill || !trail || !finePointer || reduceMotion) return;
+    if (typeof gsap === 'undefined') return;
+    const ctx = trail.getContext('2d');
+    if (!ctx) return;
+
+    const mqDesktop = window.matchMedia('(min-width: 1024px)');
+    const MAX_POINTS = 26;
+    const MAX_SPARKS = 60;
+    const points = []; // riwayat posisi pita selendang [{x, y}]
+    const sparks = []; // percikan labu [{x, y, vx, vy, life}]
+    let enabled = false;
+    let px = -100, py = -100; // posisi pointer terakhir
+    let lastMove = 0;
+    let hoverTarget = null;
+
+    function sizeTrail() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+      trail.width = Math.max(1, Math.floor(window.innerWidth * dpr));
+      trail.height = Math.max(1, Math.floor(window.innerHeight * dpr));
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function hideLabel() { label.classList.remove('show'); }
+
+    function pickLabel(t) {
+      const id = t.getAttribute('data-cursor-id');
+      if (!id) return null;
+      return currentLang === 'jv' ? (t.getAttribute('data-cursor-jv') || id) : id;
+    }
+
+    function showLabel(t) {
+      const s = pickLabel(t);
+      if (!s) { hideLabel(); return; }
+      if (pill.textContent !== s) pill.textContent = s;
+      label.classList.add('show');
+    }
+
+    // Dipanggil toggleLang (diisi ulang di bawah setelah sukses init):
+    // label hover ikut ganti bahasa tanpa gerak mouse.
+
+    function setEnabled(on) {
+      if (on === enabled) return;
+      enabled = on;
+      document.documentElement.classList.toggle('has-cursor', on);
+      if (!on) {
+        ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+        points.length = 0;
+        sparks.length = 0;
+        hoverTarget = null;
+        ring.classList.remove('is-hover', 'is-active');
+        hideLabel();
+      }
+    }
+
+    function burst(x, y) {
+      for (let i = 0; i < 12; i++) {
+        if (sparks.length >= MAX_SPARKS) sparks.shift();
+        const a = Math.random() * Math.PI * 2;
+        const sp = 1.5 + Math.random() * 4;
+        sparks.push({ x: x, y: y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 1, life: 1 });
+      }
+    }
+
+    function strokePass(maxW, baseA) {
+      const n = points.length;
+      for (let i = 1; i < n; i++) {
+        const t = i / n;
+        ctx.strokeStyle = 'rgba(255,255,255,' + (baseA * t).toFixed(3) + ')';
+        ctx.lineWidth = Math.max(0.6, maxW * t);
+        ctx.beginPath();
+        ctx.moveTo(points[i - 1].x, points[i - 1].y);
+        ctx.lineTo(points[i].x, points[i].y);
+        ctx.stroke();
+      }
+    }
+
+    function frame(now) {
+      requestAnimationFrame(frame);
+      if (!enabled || document.hidden) return;
+      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+      // Flare halo mengikuti energi transisi antar-babak (baca saja).
+      const e = Math.max(glState.energy || 0, glState.prelude || 0);
+      dot.style.setProperty('--flare', e.toFixed(3));
+
+      // Selendang: rekam titik tiap jarak 4px; surut bila diam > 0.9 dtk.
+      const last = points[points.length - 1];
+      if (px >= 0 && (!last || Math.hypot(px - last.x, py - last.y) > 4)) {
+        points.push({ x: px, y: py });
+        if (points.length > MAX_POINTS) points.shift();
+      }
+      if (now - lastMove > 900 && points.length) points.shift();
+
+      // Pita dua lapis: bayangan sutra lembut + inti terang.
+      if (points.length > 1) {
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        strokePass(7, 0.1);
+        strokePass(2.2, 0.5);
+      }
+
+      // Percikan labu: radial + gravitasi ringan, redup ±0.5 dtk.
+      for (let i = sparks.length - 1; i >= 0; i--) {
+        const s = sparks[i];
+        s.x += s.vx;
+        s.y += s.vy;
+        s.vx *= 0.96;
+        s.vy = s.vy * 0.96 + 0.03;
+        s.life -= 0.033;
+        if (s.life <= 0) { sparks.splice(i, 1); continue; }
+        ctx.fillStyle = 'rgba(255,255,255,' + (s.life * 0.9).toFixed(3) + ')';
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, 1 + s.life * 1.6, 0, 6.2832);
+        ctx.fill();
+      }
+    }
 
     try {
-      if (typeof gsap !== 'undefined') {
-        const xDot = gsap.quickTo(dot, 'x', { duration: 0.08, ease: 'power3.out' });
-        const yDot = gsap.quickTo(dot, 'y', { duration: 0.08, ease: 'power3.out' });
-        const xRing = gsap.quickTo(ring, 'x', { duration: 0.22, ease: 'power3.out' });
-        const yRing = gsap.quickTo(ring, 'y', { duration: 0.22, ease: 'power3.out' });
+      // Parkir di luar layar dulu supaya tidak nongol di (0,0) sebelum
+      // mousemove pertama. xPercent = pemusatan (ganti translate CSS).
+      gsap.set([dot, ring, label], { xPercent: -50, yPercent: -50, x: -100, y: -100 });
 
-        window.addEventListener('mousemove', function (e) {
-          xDot(e.clientX);
-          yDot(e.clientY);
-          xRing(e.clientX);
-          yRing(e.clientY);
-        });
+      const xDot = gsap.quickTo(dot, 'x', { duration: 0.08, ease: 'power3.out' });
+      const yDot = gsap.quickTo(dot, 'y', { duration: 0.08, ease: 'power3.out' });
+      const xRing = gsap.quickTo(ring, 'x', { duration: 0.22, ease: 'power3.out' });
+      const yRing = gsap.quickTo(ring, 'y', { duration: 0.22, ease: 'power3.out' });
+      const xLabel = gsap.quickTo(label, 'x', { duration: 0.16, ease: 'power3.out' });
+      const yLabel = gsap.quickTo(label, 'y', { duration: 0.16, ease: 'power3.out' });
 
-        // Efek hover interaktif pada tombol, link, dan navigasi bab
-        document.body.addEventListener('mouseover', function (e) {
-          const target = e.target.closest('button, a, [data-scrollto], .chapter-dot, input, select');
-          if (target) ring.classList.add('is-hover');
-        });
+      window.addEventListener('mousemove', function (ev) {
+        px = ev.clientX;
+        py = ev.clientY;
+        lastMove = performance.now();
+        if (!enabled) return;
+        xDot(px); yDot(py);
+        xRing(px); yRing(py);
+        xLabel(px); yLabel(py);
+        // Pil label menepi ke kiri bila terlalu dekat tepi kanan.
+        label.classList.toggle('flip', px > window.innerWidth - 190);
+      }, { passive: true });
 
-        document.body.addEventListener('mouseout', function (e) {
-          const target = e.target.closest('button, a, [data-scrollto], .chapter-dot, input, select');
-          if (target) ring.classList.remove('is-hover');
-        });
+      // Hover: ring mengembang + label bilingual (bila ada data-cursor-*).
+      // Guard relatedTarget: pindah antar anak elemen yang sama tidak
+      // boleh melepas class (mencegah ring berkedip).
+      const HOVER_SEL = 'button, a, [data-scrollto], .chapter-dot, input, select';
+      document.body.addEventListener('mouseover', function (ev) {
+        if (!ev.target || !ev.target.closest) return;
+        const target = ev.target.closest(HOVER_SEL);
+        if (!target) return;
+        hoverTarget = target;
+        ring.classList.add('is-hover');
+        showLabel(target);
+      });
 
-        window.addEventListener('mousedown', function () { ring.classList.add('is-active'); });
-        window.addEventListener('mouseup', function () { ring.classList.remove('is-active'); });
-      }
-    } catch (e) { /* abaikan jika gagal */ }
+      document.body.addEventListener('mouseout', function (ev) {
+        if (!ev.target || !ev.target.closest) return;
+        const target = ev.target.closest(HOVER_SEL);
+        if (target && (!ev.relatedTarget || !target.contains(ev.relatedTarget))) {
+          if (hoverTarget === target) hoverTarget = null;
+          ring.classList.remove('is-hover');
+          hideLabel();
+        }
+      });
+
+      window.addEventListener('mousedown', function (ev) {
+        ring.classList.add('is-active');
+        if (enabled && ev.clientX >= 0) burst(ev.clientX, ev.clientY);
+      });
+      window.addEventListener('mouseup', function () { ring.classList.remove('is-active'); });
+
+      cursorRefresh = function () { if (hoverTarget) showLabel(hoverTarget); };
+      sizeTrail();
+      if (mqDesktop.addEventListener) mqDesktop.addEventListener('change', function () {
+        setEnabled(mqDesktop.matches);
+      });
+      window.addEventListener('resize', sizeTrail);
+      setEnabled(mqDesktop.matches);
+      requestAnimationFrame(frame);
+    } catch (err) {
+      // Gagal di tengah jalan: kembalikan ke kursor bawaan.
+      cursorRefresh = null;
+      setEnabled(false);
+    }
   }
 
   /* ================= 10. BOOT =================

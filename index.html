@@ -32,7 +32,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap"
     rel="stylesheet" />
-  <link rel="stylesheet" href="./style.css?v=20261001" />
+  <link rel="stylesheet" href="./style.css?v=20260929b" />
   <!-- GSAP Core + ScrollTrigger + ScrollToPlugin (lokal) -->
   <script src="./vendor/gsap.min.js?v=20261001"></script>
   <script src="./vendor/ScrollTrigger.min.js?v=20261001"></script>
@@ -45,9 +45,27 @@
 
 <body class="font-sans bg-ink text-white antialiased overflow-x-hidden">
 
-  <!-- Custom Cursor Interaktif -->
-  <div id="cursor-dot" class="fixed top-0 left-0 w-2.5 h-2.5 bg-white rounded-full pointer-events-none z-[100] mix-blend-difference hidden lg:block"></div>
-  <div id="cursor-ring" class="fixed top-0 left-0 w-9 h-9 border border-white/60 rounded-full pointer-events-none z-[99] hidden lg:block"></div>
+  <!-- Cursor Cerita (Selendang & Sumur Ajaib): tampil hanya bila JS berhasil
+       init (class `has-cursor` di <html>). Tanpa itu kursor bawaan tetap dipakai.
+       #cursor-ring/#cursor-dot/#cursor-label = wrapper posisi milik GSAP;
+       visualnya ada di span dalam (milik CSS) supaya tidak tabrakan transform.
+       Atribut data-cursor-id/jv = label hover bilingual (dibaca sesuai currentLang);
+       namanya disengaja BUKAN data-id/data-jv agar applyLanguage() tidak
+       menimpa isi tombol. -->
+  <canvas id="cursor-trail" class="fixed inset-0 w-full h-full pointer-events-none z-[98] hidden"
+    aria-hidden="true"></canvas>
+  <div id="cursor-ring" class="fixed top-0 left-0 pointer-events-none z-[99] hidden" aria-hidden="true">
+    <span class="cursor-ring-base"></span>
+    <span class="cursor-ring-dial"></span>
+    <span class="cursor-ring-dial rev"></span>
+  </div>
+  <div id="cursor-dot" class="fixed top-0 left-0 pointer-events-none z-[100] hidden" aria-hidden="true">
+    <span class="cursor-halo"></span>
+    <span class="cursor-core"></span>
+  </div>
+  <div id="cursor-label" class="fixed top-0 left-0 pointer-events-none z-[101] hidden" aria-hidden="true">
+    <span class="cursor-label-pill"></span>
+  </div>
 
   <!-- Scroll progress -->
   <div id="progress-bar" class="fixed top-0 left-0 h-[3px] bg-white z-[60] w-0"></div>
@@ -59,18 +77,18 @@
   <nav
     id="nav-pill"
     class="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-full bg-white/90 backdrop-blur-md shadow-xl shadow-black/20 pl-6 pr-1.5 py-1.5 max-w-[94vw]">
-    <a href="#hero" data-scrollto="#hero"
+    <a href="#hero" data-scrollto="#hero" data-cursor-id="Kembali ke awal" data-cursor-jv="Wangsul wiwitan"
       class="nav-title truncate text-[12px] sm:text-[13px] font-bold tracking-wide text-black uppercase whitespace-nowrap">
       Cerita Bawang Merah Dan Bawang Putih
     </a>
     <div class="flex items-center gap-2 shrink-0">
-      <button id="lang-toggle"
+      <button id="lang-toggle" data-cursor-id="Ganti bahasa" data-cursor-jv="Gantos basa"
         class="flex items-center rounded-full border border-black/15 bg-white p-1 text-[11px] font-bold"
         aria-label="Ganti bahasa / Gantos basa" aria-pressed="false">
         <span id="lang-opt-id" class="px-3 py-1.5 rounded-full bg-black text-white transition-all">ID</span>
         <span id="lang-opt-jv" class="px-3 py-1.5 rounded-full text-black/50 transition-all">JV</span>
       </button>
-      <button id="audio-toggle"
+      <button id="audio-toggle" data-cursor-id="Backsound" data-cursor-jv="Backsound"
         class="flex items-center justify-center w-8 h-8 rounded-full border border-black/15 bg-white text-black text-xs hover:bg-black hover:text-white transition-all"
         aria-label="Putar atau matikan musik backsound" title="Backsound Musik">
         <span id="audio-icon">🔇</span>
@@ -87,27 +105,27 @@
   <!-- ============ NAV TITIK BAB (desktop) ============ -->
   <nav id="chapter-nav" class="hidden lg:flex fixed right-5 top-1/2 -translate-y-1/2 z-40 flex-col gap-3"
     aria-label="Navigasi bab">
-    <a href="#bab-1" data-scrollto="#bab-1" data-target="bab-1"
+    <a href="#bab-1" data-scrollto="#bab-1" data-target="bab-1" data-cursor-id="Bab 01" data-cursor-jv="Bab 01"
       class="chapter-dot group flex items-center gap-2 justify-end" aria-label="Bab 1"><span
         class="dot-label text-[11px] font-semibold text-white/70 opacity-0 group-hover:opacity-100 transition-opacity">01</span><span
         class="dot"><span class="dot-fill"></span></span></a>
-    <a href="#bab-2" data-scrollto="#bab-2" data-target="bab-2"
+    <a href="#bab-2" data-scrollto="#bab-2" data-target="bab-2" data-cursor-id="Bab 02" data-cursor-jv="Bab 02"
       class="chapter-dot group flex items-center gap-2 justify-end" aria-label="Bab 2"><span
         class="dot-label text-[11px] font-semibold text-white/70 opacity-0 group-hover:opacity-100 transition-opacity">02</span><span
         class="dot"><span class="dot-fill"></span></span></a>
-    <a href="#bab-3" data-scrollto="#bab-3" data-target="bab-3"
+    <a href="#bab-3" data-scrollto="#bab-3" data-target="bab-3" data-cursor-id="Bab 03" data-cursor-jv="Bab 03"
       class="chapter-dot group flex items-center gap-2 justify-end" aria-label="Bab 3"><span
         class="dot-label text-[11px] font-semibold text-white/70 opacity-0 group-hover:opacity-100 transition-opacity">03</span><span
         class="dot"><span class="dot-fill"></span></span></a>
-    <a href="#bab-4" data-scrollto="#bab-4" data-target="bab-4"
+    <a href="#bab-4" data-scrollto="#bab-4" data-target="bab-4" data-cursor-id="Bab 04" data-cursor-jv="Bab 04"
       class="chapter-dot group flex items-center gap-2 justify-end" aria-label="Bab 4"><span
         class="dot-label text-[11px] font-semibold text-white/70 opacity-0 group-hover:opacity-100 transition-opacity">04</span><span
         class="dot"><span class="dot-fill"></span></span></a>
-    <a href="#bab-5" data-scrollto="#bab-5" data-target="bab-5"
+    <a href="#bab-5" data-scrollto="#bab-5" data-target="bab-5" data-cursor-id="Bab 05" data-cursor-jv="Bab 05"
       class="chapter-dot group flex items-center gap-2 justify-end" aria-label="Bab 5"><span
         class="dot-label text-[11px] font-semibold text-white/70 opacity-0 group-hover:opacity-100 transition-opacity">05</span><span
         class="dot"><span class="dot-fill"></span></span></a>
-    <a href="#bab-6" data-scrollto="#bab-6" data-target="bab-6"
+    <a href="#bab-6" data-scrollto="#bab-6" data-target="bab-6" data-cursor-id="Bab 06" data-cursor-jv="Bab 06"
       class="chapter-dot group flex items-center gap-2 justify-end" aria-label="Bab 6"><span
         class="dot-label text-[11px] font-semibold text-white/70 opacity-0 group-hover:opacity-100 transition-opacity">06</span><span
         class="dot"><span class="dot-fill"></span></span></a>
@@ -138,17 +156,17 @@
           Scroll perlahan — setiap layar adalah babak baru. Tersedia dalam Bahasa Indonesia dan Bahasa Jawa.
         </p>
         <div id="hero-cta" class="mt-7 flex flex-wrap items-center gap-3">
-          <button id="hero-start" type="button"
+          <button id="hero-start" type="button" data-cursor-id="Mulai" data-cursor-jv="Wiwiti"
             class="px-7 py-3 rounded-full bg-white text-black font-bold text-sm hover:bg-black hover:text-white border border-white transition-colors">
             <span data-id="Mulai Cerita" data-jv="Wiwiti Cariyos">Mulai Cerita</span>
           </button>
-          <button id="hero-lang-btn"
+          <button id="hero-lang-btn" data-cursor-id="Ganti: Jawa" data-cursor-jv="Gantos: Indonesia"
             class="px-7 py-3 rounded-full border border-white/60 text-white font-semibold text-sm hover:bg-white hover:text-black transition-colors">
             <span data-id="Ganti ke Bahasa Jawa" data-jv="Gantos dhateng Basa Indonesia">Ganti ke Bahasa Jawa</span>
           </button>
         </div>
       </div>
-      <a href="#bab-1" data-scrollto="#bab-1" class="scroll-hint" aria-label="Scroll ke cerita">
+      <a href="#bab-1" data-scrollto="#bab-1" class="scroll-hint" aria-label="Scroll ke cerita" data-cursor-id="Gulir" data-cursor-jv="Gulir">
         <span class="text-[10px] tracking-[0.3em] uppercase font-bold" data-id="Gulir" data-jv="Gulir">Gulir</span>
         <span class="scroll-dot w-6 h-10 rounded-full border-2 border-white/50 flex justify-center pt-2">
           <span class="scroll-wheel w-1.5 h-1.5 rounded-full bg-white"></span>
@@ -178,7 +196,7 @@
             kesabaran akan berbuah manis, sedangkan keserakahan akan menghancurkan dirinya sendiri.</span>”
         </blockquote>
         <div class="mt-7 flex flex-wrap items-center gap-3">
-          <a href="#hero" data-scrollto="#hero"
+          <a href="#hero" data-scrollto="#hero" data-cursor-id="Baca dari awal" data-cursor-jv="Maos saking wiwitan"
             class="px-6 py-3 rounded-full bg-white text-black text-sm font-bold hover:bg-black hover:text-white border border-white transition-colors">
             <span data-id="Baca dari Awal" data-jv="Maos saking Wiwitan">Baca dari Awal</span>
           </a>
@@ -198,7 +216,7 @@
     </p>
   </footer>
 
-  <script src="./script.js?v=20261001"></script>
+  <script src="./script.js?v=20260929b"></script>
 </body>
 
 </html>
