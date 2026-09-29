@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bawang Merah & Bawang Putih — Dongeng Bilingual</title>
+  <meta name="description"
+    content="Dongeng bilingual (Indonesia & Jawa) Bawang Merah Bawang Putih — scroll untuk menggerakkan cerita." />
+  <link rel="icon"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='16' fill='black'/%3E%3Ctext x='16' y='22' font-size='14' font-family='sans-serif' font-weight='bold' fill='white' text-anchor='middle'%3EBM%3C/text%3E%3C/svg%3E" />
+  <link rel="preload" as="image" href="./assets/hero-joglo.jfif" />
+  <!-- Library lokal (vendor/) agar localhost jalan tanpa internet. Asal CDN dicatat di AGENTS.md -->
+  <script src="./vendor/tailwind.min.js?v=20261001"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Montserrat', 'system-ui', 'sans-serif'],
+            display: ['Montserrat', 'system-ui', 'sans-serif'],
+          },
+          colors: {
+            ink: '#0a0a0a',
+            paper: '#ffffff',
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="./style.css?v=20261001" />
+  <!-- GSAP Core + ScrollTrigger + ScrollToPlugin (lokal) -->
+  <script src="./vendor/gsap.min.js?v=20261001"></script>
+  <script src="./vendor/ScrollTrigger.min.js?v=20261001"></script>
+  <script src="./vendor/ScrollToPlugin.min.js?v=20261001"></script>
+  <!-- Three.js (lokal, lapisan partikel transisi) -->
+  <script src="./vendor/three.min.js?v=20261001"></script>
+  <!-- Lenis smooth scroll (lokal) -->
+  <script src="./vendor/lenis.min.js?v=20261001"></script>
+</head>
+
+<body class="font-sans bg-ink text-white antialiased overflow-x-hidden">
+
+  <!-- Scroll progress -->
+  <div id="progress-bar" class="fixed top-0 left-0 h-[3px] bg-white z-[60] w-0"></div>
+
+  <!-- ============ NAVBAR PILL TENGAH ============
+       Posisi tengah dipegang GSAP lewat xPercent (lihat initNavAutohide),
+       bukan utility -translate-x-1/2, karena GSAP menulis ulang `transform`
+       penuh saat menganimasi yPercent dan akan menghapus utility itu. -->
+  <nav
+    id="nav-pill"
+    class="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-full bg-white/90 backdrop-blur-md shadow-xl shadow-black/20 pl-6 pr-1.5 py-1.5 max-w-[94vw]">
+    <a href="#hero" data-scrollto="#hero"
+      class="nav-title truncate text-[12px] sm:text-[13px] font-bold tracking-wide text-black uppercase whitespace-nowrap">
+      Cerita Bawang Merah Dan Bawang Putih
+    </a>
+    <div class="flex items-center gap-2 shrink-0">
+      <button id="lang-toggle"
+        class="flex items-center rounded-full border border-black/15 bg-white p-1 text-[11px] font-bold"
+        aria-label="Ganti bahasa / Gantos basa" aria-pressed="false">
+        <span id="lang-opt-id" class="px-3 py-1.5 rounded-full bg-black text-white transition-all">ID</span>
+        <span id="lang-opt-jv" class="px-3 py-1.5 rounded-full text-black/50 transition-all">JV</span>
+      </button>
+      <button id="audio-toggle"
+        class="flex items-center justify-center w-8 h-8 rounded-full border border-black/15 bg-white text-black text-xs hover:bg-black hover:text-white transition-all"
+        aria-label="Putar atau matikan musik backsound" title="Backsound Musik">
+        <span id="audio-icon">🔇</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Element Audio Backsound (Morning Dew on Bamboo) -->
+  <audio id="bg-audio" loop src="./assets/Morning_Dew_on_Bamboo.mp3" preload="auto"></audio>
+
+  <!-- Lapisan partikel transisi Three.js (di atas foto, di bawah teks) -->
+  <canvas id="gl-transition" aria-hidden="true"></canvas>
+
+  <!-- ============ NAV TITIK BAB (desktop) ============ -->
+  <nav id="chapter-nav" class="hidden lg:flex fixed right-5 top-1/2 -translate-y-1/2 z-40 flex-col gap-3"
+    aria-label="Navigasi bab">
+    <a href="#bab-1" data-scrollto="#bab-1" data-target="bab-1"
+      class="chapter-dot group flex items-center gap-2 justify-end" aria-label="Bab 1"><span
+        class="dot-label text-[11px] font-semibold text-white/70 opacity-0 group-hover:opacity-100 transition-opacity">01</span><span
+        class="dot"><span class="dot-fill"></span></span></a>
+    <a href="#bab-2" data-scrollto="#bab-2" data-target="bab-2"
+      class="chapter-dot group flex items-center gap-2 justify-end" aria-label="Bab 2"><span
+        class="dot-label text-[11px] font-semibold text-white/70 opacity-0 group-hover:opacity-100 transition-opacity">02</span><span
+        class="dot"><span class="dot-fill"></span></span></a>
+    <a href="#bab-3" data-scrollto="#bab-3" data-target="bab-3"
+      class="chapter-dot group flex items-center gap-2 justify-end" aria-label="Bab 3"><span
+        class="dot-label text-[11px] font-semibold text-white/70 opacity-0 group-hover:opacity-100 transition-opacity">03</span><span
+        class="dot"><span class="dot-fill"></span></span></a>
+    <a href="#bab-4" data-scrollto="#bab-4" data-target="bab-4"
+      class="chapter-dot group flex items-center gap-2 justify-end" aria-label="Bab 4"><span
+        class="dot-label text-[11px] font-semibold text-white/70 opacity-0 group-hover:opacity-100 transition-opacity">04</span><span
+        class="dot"><span class="dot-fill"></span></span></a>
+    <a href="#bab-5" data-scrollto="#bab-5" data-target="bab-5"
+      class="chapter-dot group flex items-center gap-2 justify-end" aria-label="Bab 5"><span
+        class="dot-label text-[11px] font-semibold text-white/70 opacity-0 group-hover:opacity-100 transition-opacity">05</span><span
+        class="dot"><span class="dot-fill"></span></span></a>
+    <a href="#bab-6" data-scrollto="#bab-6" data-target="bab-6"
+      class="chapter-dot group flex items-center gap-2 justify-end" aria-label="Bab 6"><span
+        class="dot-label text-[11px] font-semibold text-white/70 opacity-0 group-hover:opacity-100 transition-opacity">06</span><span
+        class="dot"><span class="dot-fill"></span></span></a>
+  </nav>
+
+  <!-- ============ HERO ============ -->
+  <header id="hero" class="scene scene-hero relative overflow-hidden bg-black">
+    <div class="scene-pin">
+      <div class="scene-media">
+        <img src="./assets/hero-joglo.jfif" alt="Rumah joglo Jawa" class="hero-img scene-img is-active"
+          fetchpriority="high" onerror="this.style.display='none'" />
+      </div>
+      <div class="scene-scrim" aria-hidden="true"></div>
+      <div id="hero-veil" class="hero-veil" aria-hidden="true"></div>
+      <canvas id="bg-canvas" class="hidden" aria-hidden="true"></canvas>
+      <div class="scene-body">
+        <p id="hero-kicker" class="step-kicker">
+          <span data-id="Dongeng Nusantara — ID / JV" data-jv="Dongeng Nusantara — ID / JV">Dongeng Nusantara — ID /
+            JV</span>
+        </p>
+        <h1 id="hero-title" class="hero-title">
+          <span class="hero-line">Bawang Merah</span>
+          <span class="hero-line">&amp; Bawang Putih</span>
+        </h1>
+        <p id="hero-subtitle" class="story-text"
+          data-id="Scroll perlahan — setiap layar adalah babak baru. Tersedia dalam Bahasa Indonesia dan Bahasa Jawa."
+          data-jv="Gulir alon-alon — saben layar minangka babak enggal. Kasedhiya ing Basa Indonesia lan Basa Jawa.">
+          Scroll perlahan — setiap layar adalah babak baru. Tersedia dalam Bahasa Indonesia dan Bahasa Jawa.
+        </p>
+        <div id="hero-cta" class="mt-7 flex flex-wrap items-center gap-3">
+          <button id="hero-start" type="button"
+            class="px-7 py-3 rounded-full bg-white text-black font-bold text-sm hover:bg-black hover:text-white border border-white transition-colors">
+            <span data-id="Mulai Cerita" data-jv="Wiwiti Cariyos">Mulai Cerita</span>
+          </button>
+          <button id="hero-lang-btn"
+            class="px-7 py-3 rounded-full border border-white/60 text-white font-semibold text-sm hover:bg-white hover:text-black transition-colors">
+            <span data-id="Ganti ke Bahasa Jawa" data-jv="Gantos dhateng Basa Indonesia">Ganti ke Bahasa Jawa</span>
+          </button>
+        </div>
+      </div>
+      <a href="#bab-1" data-scrollto="#bab-1" class="scroll-hint" aria-label="Scroll ke cerita">
+        <span class="text-[10px] tracking-[0.3em] uppercase font-bold" data-id="Gulir" data-jv="Gulir">Gulir</span>
+        <span class="scroll-dot w-6 h-10 rounded-full border-2 border-white/50 flex justify-center pt-2">
+          <span class="scroll-wheel w-1.5 h-1.5 rounded-full bg-white"></span>
+        </span>
+      </a>
+    </div>
+  </header>
+
+  <!-- ============ STORY (diisi JS: pin per bab) ============ -->
+  <main id="story-container" aria-live="polite"></main>
+
+  <!-- ============ MORAL / PENUTUP ============ -->
+  <section id="pesan" class="scene relative overflow-hidden bg-black">
+    <div class="scene-pin">
+      <div class="scene-media">
+        <img src="./assets/penutup-putih.jfif" alt="" aria-hidden="true" loading="lazy" decoding="async"
+          class="scene-img is-active" onerror="this.style.display='none'" />
+      </div>
+      <div class="scene-scrim" aria-hidden="true"></div>
+      <div class="scene-body">
+        <p class="step-kicker">Pesan Moral · Pesen Moral</p>
+        <blockquote class="font-bold text-2xl sm:text-4xl leading-snug mt-4 max-w-3xl text-white"
+          style="text-shadow:0 2px 24px rgba(0,0,0,.6)">
+          “<span
+            data-id="Kebaikan dan kesabaran akan berbuah manis, sedangkan keserakahan akan menghancurkan dirinya sendiri."
+            data-jv="Kesaenan lan kesabaran bakal woh manis, dene kesrakahan bakal ngrusak awake dhewe.">Kebaikan dan
+            kesabaran akan berbuah manis, sedangkan keserakahan akan menghancurkan dirinya sendiri.</span>”
+        </blockquote>
+        <div class="mt-7 flex flex-wrap items-center gap-3">
+          <a href="#hero" data-scrollto="#hero"
+            class="px-6 py-3 rounded-full bg-white text-black text-sm font-bold hover:bg-black hover:text-white border border-white transition-colors">
+            <span data-id="Baca dari Awal" data-jv="Maos saking Wiwitan">Baca dari Awal</span>
+          </a>
+          <span id="lang-badge"
+            class="text-xs font-semibold px-4 py-2.5 rounded-full border border-white/40 text-white">Bahasa:
+            Indonesia</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="bg-black text-white/50 text-center text-xs py-8 px-6 border-t border-white/10">
+    <p class="text-white/90 text-sm font-bold uppercase tracking-widest">Bawang Merah & Bawang Putih</p>
+    <p class="mt-2 font-medium" data-id="Dongeng bilingual untuk pembelajaran Bahasa Jawa."
+      data-jv="Dongeng dwibasa kangge pasinaon Basa Jawa.">
+      Dongeng bilingual untuk pembelajaran Bahasa Jawa.
+    </p>
+  </footer>
+
+  <script src="./script.js?v=20261001"></script>
+</body>
+
+</html>

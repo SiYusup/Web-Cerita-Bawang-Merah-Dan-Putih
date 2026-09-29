@@ -1,0 +1,59 @@
+# React / Node / Framework build outputs & dependencies
+react/
+react/**
+node_modules/
+node_modules/**
+build/
+dist/
+.next/
+.nuxt/
+.astro/
+.cache/
+.opencode/
+.opencode/**
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Logs & temp output from local serving (e.g. python -m http.server)
+*.log
+server.log
+
+# Windows artifacts — "NUL" gets created by a mistyped `> NUL` redirect
+NUL
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# macOS / Linux junk
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+.fuse_hidden*
+.directory
+
+# Editor / IDE state
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Local scratch notes
+*.tmp
+*.bak
+.env
+.env.local
+.env.*
+
+# Committed on purpose — page must animate with zero internet (see AGENTS.md)
+!vendor/
+!vendor/**
+!assets/
+!assets/**

@@ -1,0 +1,257 @@
+/* style.css — minimalis hitam-putih, Montserrat. Gerak milik GSAP/Lenis/Three.js.
+   File ini hanya tampilan statis + keyframes. */
+
+body {
+  text-rendering: optimizeLegibility;
+  background: #000;
+  font-family: 'Montserrat', system-ui, sans-serif;
+}
+
+/* Kanvas lama dipertahankan di DOM tapi disembunyikan (Three.js pindah ke #gl-transition) */
+#bg-canvas { display: none; }
+
+/* Lapisan partikel transisi: di atas foto+scrim, di bawah teks */
+#gl-transition {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 7;
+  pointer-events: none;
+}
+
+/* Scroll indicator */
+@keyframes wheel-drop {
+  0%   { transform: translateY(0); opacity: 1; }
+  70%  { transform: translateY(12px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 0; }
+}
+.scroll-wheel { animation: wheel-drop 1.8s ease-in-out infinite; }
+
+/* ============ PINNED HERO SEQUENCE ============ */
+/* Tinggi & pin diatur GSAP; CSS hanya bingkai statis 100svh. */
+.scene {
+  position: relative;
+  height: 100vh;
+  height: 100svh;
+  overflow: hidden;
+}
+
+.scene-pin {
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+
+.scene-media { position: absolute; inset: 0; z-index: 0; }
+
+.scene-img,
+.hero-img {
+  filter: grayscale(35%) contrast(1.05);
+}
+
+.scene-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+}
+.scene-img.is-active,
+.scene-img:first-child { opacity: 1; }
+
+/* Scrim: gradient hitam hanya di bawah agar teks jelas tanpa kartu */
+.scene-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.35) 0%,
+    rgba(0, 0, 0, 0.05) 35%,
+    rgba(0, 0, 0, 0.35) 62%,
+    rgba(0, 0, 0, 0.82) 100%
+  );
+}
+
+/* Teks langsung di atas foto, bawah-kiri */
+.scene-body {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 0 1.5rem 5.5rem;
+}
+@media (min-width: 640px) {
+  .scene-body { padding: 0 2.5rem 6.5rem; }
+}
+
+/* Caption lapis (Bab 3 & 5): ditumpuk kiri-atas, difade via timeline */
+.cap-stack {
+  position: absolute;
+  z-index: 10;
+  top: 5rem;
+  left: 0;
+  right: 0;
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  display: grid;
+  pointer-events: none;
+}
+@media (min-width: 640px) { .cap-stack { padding: 0 2.5rem; } }
+.beat-cap { grid-area: 1 / 1; opacity: 0; }
+
+.step-kicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.6);
+}
+.kicker-num { color: #fff; }
+
+.story-title,
+.hero-title {
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  color: #fff;
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.6);
+}
+.story-title {
+  font-size: 1.6rem;
+  line-height: 1.12;
+  margin-top: 0.75rem;
+  max-width: 20ch;
+}
+.hero-title {
+  font-size: 2.2rem;
+  line-height: 1.05;
+  margin-top: 1rem;
+}
+@media (min-width: 640px) {
+  .story-title { font-size: 2.6rem; }
+  .hero-title { font-size: 3.8rem; }
+}
+
+.story-text {
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 500;
+  line-height: 1.75;
+  font-size: 0.9rem;
+  margin-top: 1rem;
+  max-width: 38rem;
+  text-shadow: 0 1px 14px rgba(0, 0, 0, 0.7);
+}
+@media (min-width: 640px) { .story-text { font-size: 1rem; } }
+
+.beat-cap {
+  color: #fff;
+  font-style: italic;
+  font-weight: 600;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  max-width: 30rem;
+  border-left: 2px solid #fff;
+  padding-left: 1rem;
+  text-shadow: 0 1px 14px rgba(0, 0, 0, 0.7);
+}
+
+.hero-line { display: block; }
+
+/* Reveal teks: tiap baris (kicker, judul, cerita) punya mask sendiri supaya bisa
+   naik dari bawah dan tertutup rapi. Padding bawah + margin negatif menjaga
+   huruf yang turun (g, j, p) dan text-shadow tidak terpotong tepi mask. */
+.reveal-mask {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.16em;
+  margin-bottom: -0.16em;
+}
+
+.reveal-line {
+  display: block;
+  will-change: transform;
+}
+
+.scroll-hint {
+  position: absolute;
+  z-index: 10;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Gerbang pembuka: tirai menutupi foto sampai tombol ditekan.
+   Opasitas 0 di CSS supaya tanpa JS halaman tetap normal. */
+.hero-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Cerita belum dimulai: navigasi bab mati, affordance scroll disembunyikan.
+   Scroll dikunci lewat event guard di script.js, bukan overflow, supaya
+   ScrollTrigger tetap menghitung pin dengan benar. */
+body.is-locked #chapter-nav {
+  opacity: 0.3;
+  transition: opacity 0.3s;
+}
+body.is-locked .scroll-hint { visibility: hidden; }
+
+/* Nav titik bab — monokrom + fill progres hold */
+.chapter-dot .dot {
+  position: relative;
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+.dot-fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 100%;
+  background: #fff;
+  transform: scaleY(0);
+  transform-origin: bottom;
+}
+.chapter-dot.is-active .dot {
+  border-color: #fff;
+  transform: scale(1.4);
+}
+.chapter-dot.is-active .dot-label { opacity: 1; color: #fff; }
+
+/* Fokus aksesibel */
+#lang-toggle:focus-visible,
+#hero-lang-btn:focus-visible,
+#hero-start:focus-visible,
+a:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
+/* prefers-reduced-motion: mode `min` di script.js yang mematikan geraknya
+   (tanpa zoom, drift, partikel, atau naik-turun teks). Blok ini hanya membersihkan
+   sisa effect CSS; rule `* { transition-duration }` yang dulu ada di sini ikut
+   mematikan transisi tombol bahasa, jadi tidak dipakai lagi. */
+@media (prefers-reduced-motion: reduce) {
+  .scroll-wheel { animation: none; }
+  .reveal-line { will-change: auto; }
+}
